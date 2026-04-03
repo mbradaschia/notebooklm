@@ -1,0 +1,17 @@
+# Runtime config — contains user-specific paths, do not distribute
+config.json
+
+# Auth secrets — never distribute
+/a0/usr/secrets/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Playwright
+playwright-state.json
+SKILL.md
+config.json

@@ -1,0 +1,15 @@
+# NotebookLM Plugin Configuration
+#
+# Binary path: leave empty to auto-detect (plugin-local venv, then fallback to skill venv)
+notebooklm_binary: ""
+
+# Auth storage path: persistent directory for auth cookies across container restarts
+# Default: /a0/usr/secrets/notebooklm (survives restarts via A0 volume mount)
+auth_storage_path: "/a0/usr/secrets/notebooklm"
+
+# Active notebook (set via the notebook selector modal)
+active_notebook_id: ""
+active_notebook_title: ""
+
+# Automatically switch to NotebookLM Researcher agent when a notebook is selected
+auto_switch_agent: true

@@ -1,0 +1,529 @@
+<html>
+<head>
+  <title>NotebookLM — Select Notebook</title>
+  <script type="module">
+    import { store } from "/plugins/notebooklm/webui/notebooklm-store.js";
+  </script>
+</head>
+<body>
+  <div x-data>
+    <template x-if="$store.notebooklm">
+      <div x-init="$store.notebooklm.onModalOpen()" x-destroy="$store.notebooklm.onModalClose()">
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- AUTH PANEL — shown when not authenticated          -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <template x-if="$store.notebooklm.authChecked && !$store.notebooklm.authenticated">
+          <div class="nlm-auth-panel">
+
+            <!-- Header -->
+            <div class="nlm-auth-header">
+              <span class="material-symbols-outlined" style="font-size: 1.8rem; color: #f59e0b;">key_off</span>
+              <div>
+                <strong style="font-size: 0.95rem;">NotebookLM — Authentication Required</strong>
+                <p style="margin: 0.3em 0 0; opacity: 0.7; font-size: 0.8rem;">Upload your <code style="background:rgba(255,255,255,0.08);padding:0.1em 0.3em;border-radius:3px;">storage_state.json</code> to connect your Google account.</p>
+              </div>
+            </div>
+
+
+            <!-- ── Method 2: File drop / browse ── -->
+              <div class="nlm-auth-method-header">
+                <strong>Upload <code style="background:rgba(255,255,255,0.08);padding:0.1em 0.4em;border-radius:3px;">storage_state.json</code></strong>
+              </div>
+
+              <!-- notebooklm-py instructions — above the drop zone -->
+              <div class="nlm-code-instructions" style="margin-bottom:0.9em;">
+                <p style="margin:0 0 0.4em; font-size:0.92rem;">Generate it via <strong>notebooklm-py</strong> — run on your local computer:</p>
+                <div class="nlm-code-block">
+                  <code>pip install notebooklm-py</code><br>
+                  <code>notebooklm login</code>
+                </div>
+                <p style="margin:0.6em 0 0; font-size:0.92rem;">Go to <code style="background:rgba(255,255,255,0.08);padding:0.1em 0.4em;border-radius:3px;">~/.notebooklm</code> and select/drop the file <code style="background:rgba(255,255,255,0.08);padding:0.1em 0.4em;border-radius:3px;">storage_state.json</code> below:</p>
+              </div>
+
+              <!-- Drop zone -->
+              <div class="nlm-upload-zone"
+                :class="{ 'nlm-upload-dragover': $store.notebooklm.uploadDragover }"
+                @dragover.prevent="$store.notebooklm.uploadDragover = true"
+                @dragleave.prevent="$store.notebooklm.uploadDragover = false"
+                @drop.prevent="$store.notebooklm.dropCookieFile($event)">
+                <div class="nlm-upload-idle">
+                  <span class="material-symbols-outlined" style="font-size:1.8rem; opacity:0.45;">upload_file</span>
+                  <p style="margin:0.3em 0 0.2em; font-size:0.82rem;">Drop cookies JSON here</p>
+                  <label class="nlm-btn nlm-btn-secondary" style="cursor:pointer; margin-top:0.3em;">
+                    <span class="material-symbols-outlined" style="font-size:1rem;">folder_open</span>
+                    Browse File
+                    <input type="file" accept=".json,application/json" style="display:none;"
+                      @change="$store.notebooklm.uploadCookieFile($event)">
+                  </label>
+                </div>
+              </div>
+
+            <!-- Re-check Auth — works for all methods -->
+            <div style="margin-top:1em; padding-top:0.8em; border-top:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; gap:0.6em;">
+              <button class="nlm-btn nlm-btn-secondary" @click="$store.notebooklm.checkAuth()">
+                <span class="material-symbols-outlined" style="font-size:1rem;">refresh</span>
+                Re-check Auth
+              </button>
+              <span style="font-size:0.78rem; opacity:0.55;">After saving your file, click to verify authentication.</span>
+            </div>
+
+            <!-- Footer -->
+            <div class="nlm-auth-footer">
+              <span>Powered by <a href="https://github.com/teng-lin/notebooklm-py" target="_blank">notebooklm-py</a></span>
+            </div>
+          </div>
+        </template>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- NOTEBOOK SELECTOR — shown when authenticated       -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <template x-if="!$store.notebooklm.authChecked || $store.notebooklm.authenticated">
+          <div class="nlm-modal-content">
+
+            <!-- Active notebook banner -->
+            <template x-if="$store.notebooklm.hasActiveNotebook">
+              <div class="nlm-active-banner">
+                <span class="material-symbols-outlined" style="font-size: 1rem; color: #8b5cf6;">auto_stories</span>
+                <span class="nlm-active-text">
+                  Active: <strong x-text="$store.notebooklm.activeNotebookTitle"></strong>
+                </span>
+                <button class="nlm-deselect-btn" @click="$store.notebooklm.deselectNotebook()" title="Deselect notebook">
+                  <span class="material-symbols-outlined" style="font-size: 0.9rem;">close</span>
+                </button>
+              </div>
+            </template>
+
+            <!-- Search bar -->
+            <div class="nlm-search-row">
+              <div class="nlm-search-box">
+                <span class="material-symbols-outlined nlm-search-icon">search</span>
+                <input
+                  type="text"
+                  class="nlm-search-input"
+                  placeholder="Search notebooks..."
+                  x-model.debounce.200ms="$store.notebooklm.searchQuery"
+                  autofocus
+                />
+                <button
+                  class="nlm-search-clear"
+                  x-show="$store.notebooklm.searchQuery"
+                  @click="$store.notebooklm.searchQuery = ''"
+                >
+                  <span class="material-symbols-outlined" style="font-size: 0.85rem;">close</span>
+                </button>
+              </div>
+              <button class="nlm-refresh-btn" @click="$store.notebooklm.fetchNotebooks()" title="Refresh notebooks">
+                <span class="material-symbols-outlined" :class="{ 'nlm-spin': $store.notebooklm.loading }">refresh</span>
+              </button>
+              <button class="nlm-refresh-btn" @click="$store.notebooklm.forceReauth()" title="Re-authenticate" style="color: #f59e0b;">
+                <span class="material-symbols-outlined">key_off</span>
+              </button>
+            </div>
+
+            <!-- Loading -->
+            <template x-if="$store.notebooklm.loading && $store.notebooklm.notebooks.length === 0">
+              <div class="nlm-loading">
+                <span class="material-symbols-outlined nlm-spin">progress_activity</span>
+                <span>Loading notebooks...</span>
+              </div>
+            </template>
+
+            <!-- Notebook table -->
+            <template x-if="!$store.notebooklm.loading || $store.notebooklm.notebooks.length > 0">
+              <div class="nlm-table-wrap">
+                <table class="nlm-table">
+                  <thead>
+                    <tr>
+                      <th class="nlm-th nlm-th-title" @click="$store.notebooklm.toggleSort('title')">
+                        <span>Title</span>
+                        <span class="material-symbols-outlined nlm-sort-icon" x-text="$store.notebooklm.sortIcon('title')"></span>
+                      </th>
+                      <th class="nlm-th nlm-th-owner" @click="$store.notebooklm.toggleSort('is_owner')">
+                        <span>Owner</span>
+                        <span class="material-symbols-outlined nlm-sort-icon" x-text="$store.notebooklm.sortIcon('is_owner')"></span>
+                      </th>
+                      <th class="nlm-th nlm-th-created" @click="$store.notebooklm.toggleSort('created_at')">
+                        <span>Created</span>
+                        <span class="material-symbols-outlined nlm-sort-icon" x-text="$store.notebooklm.sortIcon('created_at')"></span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template x-for="nb in $store.notebooklm.filteredNotebooks" :key="nb.id">
+                      <tr
+                        class="nlm-row"
+                        :class="{ 'nlm-row-active': nb.id === $store.notebooklm.activeNotebookId }"
+                        @click="$store.notebooklm.selectNotebook(nb)"
+                        :title="'ID: ' + nb.id"
+                      >
+                        <td class="nlm-td nlm-td-title">
+                          <span class="material-symbols-outlined nlm-nb-icon"
+                                :style="nb.id === $store.notebooklm.activeNotebookId ? 'color: #8b5cf6;' : ''">auto_stories</span>
+                          <span x-text="nb.title"></span>
+                        </td>
+                        <td class="nlm-td nlm-td-owner">
+                          <span class="nlm-owner-badge" :class="nb.is_owner ? 'nlm-owner-yes' : 'nlm-owner-no'"
+                                x-text="nb.is_owner ? 'Owner' : 'Shared'"></span>
+                        </td>
+                        <td class="nlm-td nlm-td-created" x-text="$store.notebooklm.formatDate(nb.created_at)"></td>
+                      </tr>
+                    </template>
+
+                    <!-- Empty state -->
+                    <template x-if="$store.notebooklm.filteredNotebooks.length === 0 && !$store.notebooklm.loading">
+                      <tr>
+                        <td colspan="3" class="nlm-empty">
+                          <template x-if="$store.notebooklm.searchQuery">
+                            <span>No notebooks match "<span x-text="$store.notebooklm.searchQuery"></span>"</span>
+                          </template>
+                          <template x-if="!$store.notebooklm.searchQuery">
+                            <span>No notebooks found. Create one at <a href="https://notebooklm.google.com" target="_blank">notebooklm.google.com</a></span>
+                          </template>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </template>
+
+            <!-- Footer info -->
+            <div class="nlm-footer-info">
+              <span style="opacity: 0.5; font-size: 0.7rem;">
+                Powered by <a href="https://github.com/teng-lin/notebooklm-py" target="_blank" style="color: inherit;">notebooklm-py</a>
+              </span>
+              <span style="opacity: 0.5; font-size: 0.7rem;" x-text="$store.notebooklm.notebooks.length + ' notebooks'"></span>
+            </div>
+
+          </div>
+        </template>
+
+      </div>
+    </template>
+  </div>
+
+  <style>
+    /* ══════════════════════════════════════════════════════ */
+    /* NOTEBOOK SELECTOR                                     */
+    /* ══════════════════════════════════════════════════════ */
+    .nlm-modal-content {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+      min-height: 300px;
+    }
+
+    /* Active banner */
+    .nlm-active-banner {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      padding: var(--spacing-xs) var(--spacing-sm);
+      background: rgba(139, 92, 246, 0.08);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      border-radius: var(--border-radius);
+      font-size: 0.8rem;
+      color: var(--color-text);
+    }
+    .nlm-active-text { flex: 1; }
+    .nlm-deselect-btn {
+      background: none; border: none; color: var(--color-text);
+      cursor: pointer; opacity: 0.5; padding: 2px;
+      border-radius: 4px; display: flex; align-items: center;
+    }
+    .nlm-deselect-btn:hover { opacity: 1; background: rgba(139, 92, 246, 0.15); }
+
+    /* Search */
+    .nlm-search-row {
+      display: flex; gap: var(--spacing-xs); align-items: center;
+    }
+    .nlm-search-box {
+      flex: 1; display: flex; align-items: center;
+      background: var(--color-background-hover); border-radius: var(--border-radius);
+      padding: 0 var(--spacing-xs); gap: var(--spacing-xs);
+    }
+    .nlm-search-icon { font-size: 1rem; opacity: 0.5; }
+    .nlm-search-input {
+      flex: 1; background: none; border: none; outline: none;
+      color: var(--color-text); font-size: 0.85rem;
+      padding: var(--spacing-xs) 0;
+    }
+    .nlm-search-clear {
+      background: none; border: none; color: var(--color-text);
+      cursor: pointer; opacity: 0.4; display: flex;
+    }
+    .nlm-search-clear:hover { opacity: 0.8; }
+    .nlm-refresh-btn {
+      background: none; border: 1px solid var(--color-border);
+      color: var(--color-text); border-radius: var(--border-radius);
+      cursor: pointer; padding: var(--spacing-xs); display: flex;
+    }
+    .nlm-refresh-btn:hover { background: var(--color-background-hover); }
+
+    /* Loading */
+    .nlm-loading {
+      display: flex; align-items: center; justify-content: center;
+      gap: var(--spacing-xs); padding: var(--spacing-lg);
+      opacity: 0.6; font-size: 0.85rem;
+    }
+
+    /* Table */
+    .nlm-table-wrap {
+      max-height: 400px; overflow-y: auto;
+      border: 1px solid var(--color-border); border-radius: var(--border-radius);
+    }
+    .nlm-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .nlm-th {
+      text-align: left; padding: var(--spacing-xs) var(--spacing-sm);
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-background-hover); cursor: pointer;
+      user-select: none; white-space: nowrap; font-weight: 600;
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em;
+      color: var(--color-text); opacity: 0.7;
+    }
+    .nlm-th:hover { opacity: 1; }
+    .nlm-th-title { width: 55%; }
+    .nlm-th-owner { width: 15%; text-align: center; }
+    .nlm-th-created { width: 30%; }
+    .nlm-sort-icon { font-size: 0.85rem; vertical-align: middle; margin-left: 2px; }
+
+    .nlm-row { cursor: pointer; transition: background 0.1s; }
+    .nlm-row:hover { background: var(--color-background-hover); }
+    .nlm-row-active { background: rgba(139, 92, 246, 0.08); }
+    .nlm-row-active:hover { background: rgba(139, 92, 246, 0.13); }
+
+    .nlm-td {
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-bottom: 1px solid var(--color-border);
+      color: var(--color-text);
+    }
+    .nlm-td-title { display: flex; align-items: center; gap: var(--spacing-xs); }
+    .nlm-td-owner { text-align: center; }
+    .nlm-nb-icon { font-size: 1rem; opacity: 0.5; flex-shrink: 0; }
+
+    .nlm-owner-badge {
+      font-size: 0.7rem; padding: 1px 6px; border-radius: 8px;
+      font-weight: 500;
+    }
+    .nlm-owner-yes { background: rgba(139, 92, 246, 0.12); color: #8b5cf6; }
+    .nlm-owner-no { background: rgba(107, 114, 128, 0.12); color: var(--color-text); opacity: 0.6; }
+
+    .nlm-empty {
+      padding: var(--spacing-lg); text-align: center;
+      opacity: 0.5; font-size: 0.82rem;
+    }
+
+    /* Footer */
+    .nlm-footer-info {
+      display: flex; justify-content: space-between;
+      padding-top: var(--spacing-xs);
+    }
+
+    /* Spinner */
+    @keyframes nlm-spin { to { transform: rotate(360deg); } }
+    .nlm-spin { animation: nlm-spin 1s linear infinite; }
+
+    /* ══════════════════════════════════════════════════════ */
+    /* AUTH PANEL                                            */
+    /* ══════════════════════════════════════════════════════ */
+    .nlm-auth-panel {
+      display: flex; flex-direction: column; gap: var(--spacing-md);
+      min-height: 300px;
+    }
+
+    .nlm-auth-header {
+      display: flex; align-items: center; gap: var(--spacing-sm);
+      padding-bottom: var(--spacing-sm);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .nlm-auth-header p { margin: 0; }
+
+    .nlm-auth-methods {
+      display: flex; flex-direction: column; gap: var(--spacing-md);
+    }
+
+    .nlm-auth-method {
+      background: var(--color-background-hover);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-sm) var(--spacing-md);
+      display: flex; flex-direction: column; gap: 0.4em;
+    }
+
+    .nlm-auth-method-header {
+      display: flex; align-items: center; gap: var(--spacing-xs);
+      font-size: 0.9rem;
+    }
+
+    .nlm-auth-method-badge {
+      font-size: 0.65rem; padding: 1px 6px; border-radius: 8px;
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .nlm-badge-recommended { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+    .nlm-badge-alt { background: rgba(107, 114, 128, 0.15); color: var(--color-text); opacity: 0.8; }
+
+    .nlm-auth-method-desc {
+      font-size: 0.8rem; opacity: 0.7; margin: 0; line-height: 1.5;
+    }
+
+    .nlm-auth-status-row {
+      display: flex; align-items: center; gap: var(--spacing-xs);
+      font-size: 0.8rem; opacity: 0.8;
+    }
+    .nlm-status-warn { color: #f59e0b; }
+    .nlm-status-warn a { color: #f59e0b; text-decoration: underline; }
+
+    .nlm-code-block {
+      background: var(--color-background); border: 1px solid var(--color-border);
+      border-radius: var(--border-radius); padding: var(--spacing-xs) var(--spacing-sm);
+      font-family: monospace; font-size: 0.78rem; line-height: 1.7;
+    }
+    .nlm-code-block code { color: var(--color-text); }
+
+    .nlm-auth-divider {
+      display: flex; align-items: center; gap: var(--spacing-sm);
+      font-size: 0.75rem; opacity: 0.4; text-transform: uppercase;
+    }
+    .nlm-auth-divider::before, .nlm-auth-divider::after {
+      content: ""; flex: 1; border-top: 1px solid var(--color-border);
+    }
+
+    /* Auth flow states */
+    .nlm-auth-flow-status {
+      display: flex; flex-direction: column; align-items: center;
+      gap: var(--spacing-sm); padding: var(--spacing-lg);
+      text-align: center;
+    }
+    .nlm-auth-flow-status p { margin: 0; font-size: 0.85rem; }
+    .nlm-auth-success { background: rgba(34, 197, 94, 0.06); border-radius: var(--border-radius); }
+
+    .nlm-auth-flow-active {
+      background: rgba(59, 130, 246, 0.06);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-md);
+      display: flex; flex-direction: column; gap: var(--spacing-sm);
+    }
+
+    .nlm-auth-flow-header {
+      display: flex; align-items: center; gap: var(--spacing-xs);
+      font-size: 0.95rem;
+    }
+
+    .nlm-auth-flow-instructions {
+      font-size: 0.85rem; opacity: 0.8; margin: 0; line-height: 1.5;
+    }
+
+    .nlm-vnc-link {
+      display: inline-flex; align-items: center; gap: var(--spacing-xs);
+      background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #3b82f6; border-radius: var(--border-radius);
+      padding: var(--spacing-xs) var(--spacing-sm);
+      font-size: 0.85rem; font-weight: 500; text-decoration: none;
+      transition: background 0.15s;
+    }
+    .nlm-vnc-link:hover { background: rgba(59, 130, 246, 0.18); }
+
+    .nlm-auth-flow-steps {
+      display: flex; flex-direction: column; gap: 0.3em;
+    }
+    .nlm-step {
+      display: flex; align-items: center; gap: var(--spacing-xs);
+      font-size: 0.82rem; opacity: 0.8;
+    }
+    .nlm-step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: rgba(59, 130, 246, 0.15); color: #3b82f6;
+      font-size: 0.7rem; font-weight: 600; flex-shrink: 0;
+    }
+
+    .nlm-auth-flow-actions {
+      display: flex; gap: var(--spacing-xs); padding-top: var(--spacing-xs);
+    }
+
+    .nlm-auth-flow-error {
+      display: flex; flex-direction: column; align-items: center;
+      gap: var(--spacing-sm); padding: var(--spacing-lg);
+      background: rgba(239, 68, 68, 0.06); border-radius: var(--border-radius);
+      text-align: center;
+    }
+    .nlm-auth-flow-error p { margin: 0; font-size: 0.85rem; color: #ef4444; }
+
+    .nlm-auth-footer {
+      margin-top: auto; padding-top: var(--spacing-sm);
+      border-top: 1px solid var(--color-border);
+      font-size: 0.7rem; opacity: 0.4; text-align: center;
+    }
+    .nlm-auth-footer a { color: inherit; }
+
+    /* ══════════════════════════════════════════════════════ */
+    /* FILE UPLOAD AUTH                                      */
+    /* ══════════════════════════════════════════════════════ */
+    .nlm-upload-zone {
+      border: 2px dashed var(--color-border);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-lg);
+      text-align: center;
+      transition: border-color 0.15s, background 0.15s;
+      cursor: default;
+    }
+    .nlm-upload-zone.nlm-upload-dragover {
+      border-color: #8b5cf6;
+      background: rgba(139, 92, 246, 0.06);
+    }
+    .nlm-upload-idle {
+      display: flex; flex-direction: column; align-items: center; gap: 0.3em;
+    }
+    .nlm-upload-error {
+      margin: 0.5em 0 0; font-size: 0.78rem; color: #ef4444;
+    }
+    .nlm-upload-instructions {
+      background: var(--color-background-hover);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .nlm-paste-area {
+      width: 100%; box-sizing: border-box;
+      background: var(--color-background);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      color: var(--color-text);
+      font-size: 0.78rem; font-family: monospace;
+      padding: var(--spacing-xs) var(--spacing-sm);
+      resize: vertical;
+      transition: border-color 0.15s;
+    }
+    .nlm-paste-area:focus { outline: none; border-color: #8b5cf6; }
+    .nlm-paste-area::placeholder { opacity: 0.45; }
+
+    /* ══════════════════════════════════════════════════════ */
+    /* BUTTONS                                               */
+    /* ══════════════════════════════════════════════════════ */
+    .nlm-btn {
+      display: inline-flex; align-items: center; gap: var(--spacing-xs);
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-radius: var(--border-radius); cursor: pointer;
+      font-size: 0.82rem; font-weight: 500;
+      border: 1px solid transparent;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .nlm-btn-primary {
+      background: #8b5cf6; color: #fff; border-color: #8b5cf6;
+    }
+    .nlm-btn-primary:hover { background: #7c3aed; }
+    .nlm-btn-secondary {
+      background: var(--color-background-hover); color: var(--color-text);
+      border-color: var(--color-border);
+    }
+    .nlm-btn-secondary:hover { background: var(--color-border); }
+    .nlm-btn-ghost {
+      background: none; color: var(--color-text); opacity: 0.6;
+    }
+    .nlm-btn-ghost:hover { opacity: 1; background: var(--color-background-hover); }
+  </style>
+</body>
+</html>

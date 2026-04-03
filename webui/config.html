@@ -1,0 +1,74 @@
+<html>
+<head>
+    <title>NotebookLM</title>
+</head>
+<body>
+    <div x-data>
+        <template x-if="config">
+            <div>
+                <div class="section-title">NotebookLM Integration</div>
+                <div class="section-description">
+                    Configure Google NotebookLM integration.
+                    Powered by <a href="https://github.com/teng-lin/notebooklm-py" target="_blank">notebooklm-py</a>.
+                </div>
+
+                <div class="section-title">CLI Binary</div>
+
+                <div class="field">
+                    <div class="field-label">
+                        <div class="field-title">Binary path</div>
+                        <div class="field-description">
+                            Path to the <code>notebooklm</code> CLI binary.
+                            Leave empty for auto-detection (plugin venv → skill venv fallback).
+                        </div>
+                    </div>
+                    <div class="field-control">
+                        <input type="text"
+                               x-model="config.notebooklm_binary"
+                               placeholder="(auto-detect)" />
+                    </div>
+                </div>
+
+                <div class="section-title">Authentication</div>
+                <div class="section-description">
+                    NotebookLM requires Google authentication via browser-based cookie capture.
+                    Leave the storage path empty to use the default <code>~/.notebooklm</code> directory.
+                </div>
+
+                <div class="field">
+                    <div class="field-label">
+                        <div class="field-title">Auth storage path</div>
+                        <div class="field-description">
+                            Custom path to the directory containing <code>storage_state.json</code>.
+                            Empty uses the default <code>~/.notebooklm</code> location.
+                        </div>
+                    </div>
+                    <div class="field-control">
+                        <input type="text"
+                               x-model="config.auth_storage_path"
+                               placeholder="(default: ~/.notebooklm)" />
+                    </div>
+                </div>
+
+                <div class="section-title">Behavior</div>
+
+                <div class="field">
+                    <div class="field-label">
+                        <div class="field-title">Auto-switch to NotebookLM agent</div>
+                        <div class="field-description">
+                            Automatically switch to the NotebookLM Researcher agent profile when
+                            a notebook is selected, and revert to the default profile when deselected.
+                        </div>
+                    </div>
+                    <div class="field-control">
+                        <label class="toggle">
+                            <input type="checkbox" x-model="config.auto_switch_agent" />
+                            <span class="toggler"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+</body>
+</html>

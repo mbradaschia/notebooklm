@@ -1,0 +1,43 @@
+<html>
+<head>
+  <script type="module">
+    import { store } from "/plugins/notebooklm/webui/notebooklm-store.js";
+  </script>
+</head>
+<body>
+  <div x-data>
+    <template x-if="$store.notebooklm">
+      <div style="display: contents;">
+        <!-- NotebookLM Button -->
+        <button
+          type="button"
+          class="text-button"
+          :class="{ 'notebooklm-active': $store.notebooklm.hasActiveNotebook }"
+          @click="openModal('/plugins/notebooklm/webui/notebooklm-modal.html')"
+          :title="$store.notebooklm.hasActiveNotebook
+            ? 'NotebookLM: ' + $store.notebooklm.truncatedTitle
+            : 'Select NotebookLM notebook'"
+        >
+          <!-- NotebookLM Icon (notebook/book icon) -->
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14" aria-hidden="true">
+            <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/>
+          </svg>
+          <p x-text="$store.notebooklm.hasActiveNotebook
+            ? 'NLM: ' + $store.notebooklm.truncatedTitle
+            : 'NotebookLM'"></p>
+        </button>
+      </div>
+    </template>
+  </div>
+
+  <style>
+    .text-button.notebooklm-active {
+      color: #8b5cf6 !important;
+      opacity: 1 !important;
+    }
+    .text-button.notebooklm-active:hover {
+      background-color: rgba(139, 92, 246, 0.1) !important;
+    }
+  </style>
+</body>
+</html>
